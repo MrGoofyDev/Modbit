@@ -14,7 +14,19 @@ class Case:
 
 class Database:
     def __init__(self, path: Path | None = None) -> None:
-        self.path = path or Path(__file__).resolve().parent / "modbit.db"
+        if path is not None:
+            self.path = path
+        else:
+            database_dir = Path(__file__).resolve().parent
+            modex_path = database_dir / "modex.db"
+            legacy_path = database_dir / "modbit.db"
+            if modex_path.exists() and legacy_path.exists():
+                raise RuntimeError(
+                    "Both database/modex.db and the legacy database/modbit.db exist. "
+                    "Choose the database containing the records to keep, then move "
+                    "the other file outside the database directory before starting Modex."
+                )
+            self.path = legacy_path if legacy_path.exists() else modex_path
         self._lock = asyncio.Lock()
 
     def _connect(self) -> sqlite3.Connection:
@@ -90,7 +102,7 @@ class Database:
             ):
                 case_id = str(row["case_id"])
                 prefix, separator, number = case_id.partition("-")
-                if prefix == "MODBIT" and separator and number.isdigit():
+                if prefix in {"MODEX", "MODBIT"} and separator and number.isdigit():
                     highest_existing_number = max(highest_existing_number, int(number))
 
             next_value = max(int(counter["next_value"]), highest_existing_number + 1)
@@ -116,7 +128,7 @@ class Database:
         connection.execute(
             "UPDATE case_counter SET next_value = ? WHERE id = 1", (number + 1,)
         )
-        return f"MODBIT-{number:04d}"
+        return f"MODEX-{number:04d}"
 
     @classmethod
     def _insert_case(

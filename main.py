@@ -8,10 +8,10 @@ from config import get_discord_token
 from database.database import Database
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-logger = logging.getLogger("modbit")
+logger = logging.getLogger("modex")
 
 
-class Modbit(commands.Bot):
+class Modex(commands.Bot):
     def __init__(self, database: Database) -> None:
         intents = discord.Intents.default()
         super().__init__(
@@ -34,7 +34,7 @@ class Modbit(commands.Bot):
 async def run_bot(token: str) -> None:
     database = Database()
     await database.initialize()
-    async with Modbit(database) as bot:
+    async with Modex(database) as bot:
         await bot.start(token)
 
 
@@ -47,7 +47,7 @@ def main() -> None:
     try:
         asyncio.run(run_bot(token))
     except KeyboardInterrupt:
-        logger.info("Modbit stopped.")
+        logger.info("Modex stopped.")
 
 
 if __name__ == "__main__":

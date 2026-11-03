@@ -6,6 +6,6 @@ def get_discord_token() -> str:
     if token is None or not token.strip():
         raise RuntimeError(
             "DISCORD_TOKEN is not set. Add your Discord bot token to the hosting "
-            "platform's environment variables and restart Modbit."
+            "platform's environment variables and restart Modex."
         )
     return token.strip()

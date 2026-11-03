@@ -7,17 +7,17 @@ class General(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    @app_commands.command(name="ping", description="Show Modbit's response latency.")
+    @app_commands.command(name="ping", description="Show Modex's response latency.")
     async def ping(self, interaction: discord.Interaction) -> None:
         latency_ms = round(self.bot.latency * 1000)
         await interaction.response.send_message(
             f"Pong! Latency: **{latency_ms} ms**"
         )
 
-    @app_commands.command(name="help", description="Show Modbit's available commands.")
+    @app_commands.command(name="help", description="Show Modex's available commands.")
     async def help(self, interaction: discord.Interaction) -> None:
         embed = discord.Embed(
-            title="Modbit commands",
+            title="Modex commands",
             description="Moderation commands are available to moderators with the required server permissions.",
             color=discord.Color.blurple(),
         )

@@ -9,7 +9,7 @@ from discord.ext import commands
 
 from database.database import Case, Database
 
-logger = logging.getLogger("modbit.moderation")
+logger = logging.getLogger("modex.moderation")
 MAX_TIMEOUT_SECONDS = 28 * 24 * 60 * 60
 MAX_REASON_LENGTH = 500
 DURATION_PATTERN = re.compile(r"^([1-9][0-9]*)([smhd])$")
@@ -123,7 +123,7 @@ class Moderation(commands.Cog):
             await self._reply(interaction, "You cannot moderate yourself.")
             return None
         if self.bot.user is not None and target.id == self.bot.user.id:
-            await self._reply(interaction, "You cannot moderate Modbit.")
+            await self._reply(interaction, "You cannot moderate Modex.")
             return None
         if target.id == guild.owner_id:
             await self._reply(interaction, "The server owner cannot be moderated by the bot.")
@@ -139,7 +139,7 @@ class Moderation(commands.Cog):
             try:
                 bot_member = await guild.fetch_member(self.bot.user.id)
             except discord.HTTPException:
-                logger.exception("Could not retrieve Modbit's server member.")
+                logger.exception("Could not retrieve Modex's server member.")
                 await self._reply(interaction, "I could not verify my server permissions.")
                 return None
         if bot_member is None or not getattr(bot_member.guild_permissions, bot_permission):
@@ -177,7 +177,7 @@ class Moderation(commands.Cog):
             try:
                 bot_member = await guild.fetch_member(self.bot.user.id)
             except discord.HTTPException:
-                logger.exception("Could not retrieve Modbit's server member.")
+                logger.exception("Could not retrieve Modex's server member.")
                 await self._reply(interaction, "I could not verify my server permissions.")
                 return None
         if bot_member is None or not getattr(channel.permissions_for(bot_member), permission):
@@ -275,7 +275,7 @@ class Moderation(commands.Cog):
         if details:
             embed.add_field(name="Details", value=details, inline=False)
         embed.add_field(name="Case ID", value=case.case_id, inline=False)
-        embed.set_footer(text=f"Modbit · {_format_timestamp(case.timestamp)}")
+        embed.set_footer(text=f"Modex · {_format_timestamp(case.timestamp)}")
         recipient = dm_channel or target
         try:
             await recipient.send(embed=embed)
@@ -713,5 +713,5 @@ class Moderation(commands.Cog):
 async def setup(bot: commands.Bot) -> None:
     database = getattr(bot, "database", None)
     if not isinstance(database, Database):
-        raise RuntimeError("The moderation cog requires an initialized Modbit database.")
+        raise RuntimeError("The moderation cog requires an initialized Modex database.")
     await bot.add_cog(Moderation(bot, database))
