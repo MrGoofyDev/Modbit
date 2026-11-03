@@ -1,0 +1,45 @@
+# Environment configuration and secrets
+.env*
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+*.secret
+*.secrets
+*.credentials
+secrets.*
+credentials.*
+*_secrets.*
+*_credentials.*
+.aws/
+.ssh/
+
+# SQLite databases (in any directory)
+*.db*
+*.sqlite*
+*.sqlite3*
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Temporary files and local tooling output
+*.log
+*.tmp
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.tox/
+build/
+dist/
+*.egg-info/
+.DS_Store
+*.swp
+*~
