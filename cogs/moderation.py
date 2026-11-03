@@ -119,6 +119,9 @@ class Moderation(commands.Cog):
                 interaction, f"You need the **{permission.replace('_', ' ')}** permission."
             )
             return None
+        if target.guild.id != guild.id:
+            await self._reply(interaction, "The selected member is not in this server.")
+            return None
         if target.id == actor.id:
             await self._reply(interaction, "You cannot moderate yourself.")
             return None
@@ -136,13 +139,11 @@ class Moderation(commands.Cog):
 
         bot_member = guild.me
         if bot_member is None and self.bot.user is not None:
-            try:
-                bot_member = await guild.fetch_member(self.bot.user.id)
-            except discord.HTTPException:
-                logger.exception("Could not retrieve Modex's server member.")
-                await self._reply(interaction, "I could not verify my server permissions.")
-                return None
-        if bot_member is None or not getattr(bot_member.guild_permissions, bot_permission):
+            bot_member = guild.get_member(self.bot.user.id)
+        if bot_member is None:
+            await self._reply(interaction, "I could not verify my server permissions.")
+            return None
+        if not getattr(bot_member.guild_permissions, bot_permission):
             await self._reply(
                 interaction, f"I need the **{bot_permission.replace('_', ' ')}** permission."
             )
@@ -174,13 +175,11 @@ class Moderation(commands.Cog):
 
         bot_member = guild.me
         if bot_member is None and self.bot.user is not None:
-            try:
-                bot_member = await guild.fetch_member(self.bot.user.id)
-            except discord.HTTPException:
-                logger.exception("Could not retrieve Modex's server member.")
-                await self._reply(interaction, "I could not verify my server permissions.")
-                return None
-        if bot_member is None or not getattr(channel.permissions_for(bot_member), permission):
+            bot_member = guild.get_member(self.bot.user.id)
+        if bot_member is None:
+            await self._reply(interaction, "I could not verify my server permissions.")
+            return None
+        if not getattr(channel.permissions_for(bot_member), permission):
             await self._reply(
                 interaction, f"I need the **{permission.replace('_', ' ')}** permission here."
             )
@@ -239,45 +238,45 @@ class Moderation(commands.Cog):
         details: str | None = None,
         dm_channel: discord.DMChannel | None = None,
     ) -> None:
-        action_colors = {
-            "BAN": discord.Color.red(),
-            "KICK": discord.Color.orange(),
-            "TIMEOUT": discord.Color.gold(),
-            "WARN": discord.Color.orange(),
-            "UNWARN": discord.Color.green(),
-        }
-        server_url = f"https://discord.com/channels/{guild.id}"
-        server_name = discord.utils.escape_markdown(guild.name)
-        server_value = f"[{server_name}]({server_url})"
-        moderator_name = discord.utils.escape_markdown(moderator.display_name)
-        embed = discord.Embed(
-            title=f"Moderation Notice · {action}",
-            description="If you are not a member of this server, you may need a valid server invite to join.",
-            color=action_colors.get(action, discord.Color.blurple()),
-            timestamp=datetime.fromisoformat(case.timestamp),
-        )
-        embed.add_field(name="Server", value=server_value, inline=True)
-        embed.add_field(name="Action", value=action, inline=True)
-        embed.add_field(
-            name="Moderator",
-            value=f"[{moderator_name}](https://discord.com/users/{moderator.id})",
-            inline=True,
-        )
-        embed.add_field(name="Reason", value=reason or "No reason provided", inline=False)
-        if duration is not None:
-            embed.add_field(name="Duration", value=duration, inline=True)
-        if expires_at is not None:
+        try:
+            action_colors = {
+                "BAN": discord.Color.red(),
+                "KICK": discord.Color.orange(),
+                "TIMEOUT": discord.Color.gold(),
+                "WARN": discord.Color.orange(),
+                "UNWARN": discord.Color.green(),
+            }
+            server_url = f"https://discord.com/channels/{guild.id}"
+            server_name = discord.utils.escape_markdown(guild.name)
+            server_value = f"[{server_name}]({server_url})"
+            moderator_name = discord.utils.escape_markdown(moderator.display_name)
+            embed = discord.Embed(
+                title=f"Moderation Notice · {action}",
+                description="If you are not a member of this server, you may need a valid server invite to join.",
+                color=action_colors.get(action, discord.Color.blurple()),
+                timestamp=datetime.fromisoformat(case.timestamp),
+            )
+            embed.add_field(name="Server", value=server_value, inline=True)
+            embed.add_field(name="Action", value=action, inline=True)
             embed.add_field(
-                name="Expires",
-                value=expires_at.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+                name="Moderator",
+                value=f"[{moderator_name}](https://discord.com/users/{moderator.id})",
                 inline=True,
             )
-        if details:
-            embed.add_field(name="Details", value=details, inline=False)
-        embed.add_field(name="Case ID", value=case.case_id, inline=False)
-        embed.set_footer(text=f"Modex · {_format_timestamp(case.timestamp)}")
-        recipient = dm_channel or target
-        try:
+            embed.add_field(name="Reason", value=reason or "No reason provided", inline=False)
+            if duration is not None:
+                embed.add_field(name="Duration", value=duration, inline=True)
+            if expires_at is not None:
+                embed.add_field(
+                    name="Expires",
+                    value=expires_at.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+                    inline=True,
+                )
+            if details:
+                embed.add_field(name="Details", value=details, inline=False)
+            embed.add_field(name="Case ID", value=case.case_id, inline=False)
+            embed.set_footer(text=f"Modex · {_format_timestamp(case.timestamp)}")
+            recipient = dm_channel or target
             await recipient.send(embed=embed)
         except discord.Forbidden as error:
             logger.warning(
@@ -366,6 +365,14 @@ class Moderation(commands.Cog):
                 await self._reply(
                     interaction,
                     "Discord could not complete the ban. No moderation case was recorded.",
+                )
+                return
+            except Exception:
+                logger.exception("Unexpected error executing ban for case %s.", case.case_id)
+                await self._reply(
+                    interaction,
+                    "The ban could not be completed because of an internal error. "
+                    "No moderation case was recorded.",
                 )
                 return
 
@@ -465,6 +472,14 @@ class Moderation(commands.Cog):
         except discord.HTTPException:
             await self._finish_case(interaction, case, "failed")
             await self._reply(interaction, "Discord could not complete that action. No change was confirmed.")
+            return
+        except Exception:
+            logger.exception("Unexpected error executing %s for case %s.", action, case.case_id)
+            await self._finish_case(interaction, case, "failed")
+            await self._reply(
+                interaction,
+                "The moderation action could not be completed because of an internal error.",
+            )
             return
         saved = await self._finish_case(interaction, case, "completed")
         if action != "KICK":
@@ -660,6 +675,15 @@ class Moderation(commands.Cog):
                 interaction, "Discord could not delete those messages.", ephemeral=True
             )
             return
+        except Exception:
+            logger.exception("Unexpected error purging messages for case %s.", case.case_id)
+            await self._finish_case(interaction, case, "failed")
+            await self._reply(
+                interaction,
+                "Messages could not be deleted because of an internal error.",
+                ephemeral=True,
+            )
+            return
         saved = await self._finish_case(interaction, case, "completed")
         status_note = "" if saved else " The case status could not be updated."
         await self._reply(
@@ -699,6 +723,15 @@ class Moderation(commands.Cog):
             await self._finish_case(interaction, case, "failed")
             await self._reply(
                 interaction, "Discord could not update this channel.", ephemeral=True
+            )
+            return
+        except Exception:
+            logger.exception("Unexpected error setting slowmode for case %s.", case.case_id)
+            await self._finish_case(interaction, case, "failed")
+            await self._reply(
+                interaction,
+                "Slowmode could not be changed because of an internal error.",
+                ephemeral=True,
             )
             return
         saved = await self._finish_case(interaction, case, "completed")
